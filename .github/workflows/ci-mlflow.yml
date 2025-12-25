@@ -43,10 +43,12 @@ jobs:
         id: get_run_id
         run: |
           EXP_ID=$(ls -1 MLProject/mlruns | grep -v ".trash" | head -n 1)
-          RUN_DIR=$(find "MLProject/mlruns/${EXP_ID}" -maxdepth 1 -type d | grep -v "MLProject/mlruns/${EXP_ID}$" | head -n 1)
-          RUN_ID=$(basename "${RUN_DIR}")
+          RUN_ID=$(find "MLProject/mlruns/${EXP_ID}" -maxdepth 2 -type f -name "meta.yaml" | head -n 1 | xargs dirname | xargs basename)
           echo "experiment_id=$EXP_ID" >> $GITHUB_OUTPUT
           echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
+          echo "EXP_ID=$EXP_ID"
+          echo "RUN_ID=$RUN_ID"
+
 
       - name: Debug run contents
         run: |
