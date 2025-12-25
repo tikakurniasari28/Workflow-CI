@@ -11,7 +11,7 @@ if os.getenv("MLFLOW_TRACKING_URI") is None:
     Path("mlruns").mkdir(exist_ok=True)
     mlflow.set_tracking_uri("file:./mlruns")
 
-if os.getenv("MLFLOW_EXPERIMENT_NAME") is None:
+if os.getenv("MLFLOW_RUN_ID") is None:
     mlflow.set_experiment("CI-Retraining-Experiment")
 
 mlflow.sklearn.autolog()
@@ -28,16 +28,15 @@ X_train, X_test, y_train, y_test = train_test_split(
     X, y, test_size=0.2, random_state=42
 )
 
-with mlflow.start_run():
-    model = LinearRegression()
-    model.fit(X_train, y_train)
+model = LinearRegression()
+model.fit(X_train, y_train)
 
-    y_pred = model.predict(X_test)
+y_pred = model.predict(X_test)
 
-    mse = mean_squared_error(y_test, y_pred)
-    r2 = r2_score(y_test, y_pred)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
 
-    print("MSE:", mse)
-    print("R2:", r2)
+print("MSE:", mse)
+print("R2:", r2)
 
-    mlflow.sklearn.log_model(model, artifact_path="model")
+mlflow.sklearn.log_model(model, artifact_path="model")
