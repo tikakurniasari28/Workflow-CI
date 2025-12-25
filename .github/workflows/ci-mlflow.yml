@@ -35,6 +35,9 @@ jobs:
         run: |
           cd MLProject
           mlflow run . --env-manager=local
+        env:
+          MLFLOW_TRACKING_URI: file:./mlruns
+          MLFLOW_EXPERIMENT_NAME: CI-Retraining-Experiment
 
       - name: Get latest MLflow run_id
         id: get_run_id

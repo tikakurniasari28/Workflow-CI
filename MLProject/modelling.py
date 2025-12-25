@@ -7,11 +7,7 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 from pathlib import Path
 
-if os.getenv("MLFLOW_TRACKING_URI") is None:
-    Path("mlruns").mkdir(exist_ok=True)
-    mlflow.set_tracking_uri("file:./mlruns")
-
-if os.getenv("MLFLOW_RUN_ID") is None:
+if os.getenv("MLFLOW_EXPERIMENT_NAME") is None and os.getenv("MLFLOW_RUN_ID") is None:
     mlflow.set_experiment("CI-Retraining-Experiment")
 
 mlflow.sklearn.autolog()
