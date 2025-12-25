@@ -58,8 +58,11 @@ jobs:
 
       - name: Build Docker Model
         run: |
-          cd MLProject
-          mlflow models build-docker -m . -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
+          EXP_ID="${{ steps.get_run_id.outputs.experiment_id }}"
+          RUN_ID="${{ steps.get_run_id.outputs.run_id }}"
+          MODEL_PATH="MLProject/mlruns/${EXP_ID}/${RUN_ID}/artifacts/model"
+          mlflow models build-docker -m "$MODEL_PATH" -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
+
 
       - name: Tag Docker Image
         run: |
