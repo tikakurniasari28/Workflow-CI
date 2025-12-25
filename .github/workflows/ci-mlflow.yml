@@ -31,37 +31,26 @@ jobs:
           pip install --upgrade pip
           pip install mlflow pandas scikit-learn joblib
 
-      - name: Run mlflow project
+      - name: Run training
         run: |
           cd MLProject
-          mlflow run . --env-manager=local
-        env:
-          MLFLOW_TRACKING_URI: file:./mlruns
-          MLFLOW_EXPERIMENT_NAME: CI-Retraining-Experiment
+          python modelling.py
 
-      - name: Locate mlruns
+      - name: Check outputs
         run: |
-          find . -maxdepth 6 -type d -name "mlruns" || true
-          find . -maxdepth 8 -type f -name "meta.yaml" | head -n 50 || true
-
-      - name: Get latest MLflow run_id
-        id: get_run_id
-        run: |
-          cd MLProject
-          RUN_ID=$(mlflow runs list --experiment-name CI-Retraining-Experiment --max-results 1 --output csv | tail -n 1 | cut -d',' -f1)
-          EXP_ID=$(mlflow experiments list --output csv | grep "CI-Retraining-Experiment" | head -n 1 | cut -d',' -f1)
-          echo "experiment_id=$EXP_ID" >> $GITHUB_OUTPUT
-          echo "run_id=$RUN_ID" >> $GITHUB_OUTPUT
-          echo "EXP_ID=$EXP_ID"
-          echo "RUN_ID=$RUN_ID"
+          ls -la
+          ls -la MLProject || true
+          ls -la MLProject/mlruns || true
+          ls -la MLProject/model || true
+          find MLProject/model -maxdepth 2 -name "MLmodel" || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
-          name: mlflow-runs
+          name: training-artifacts
           path: |
             MLProject/mlruns/
-            mlruns/
+            MLProject/model/
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -72,8 +61,7 @@ jobs:
       - name: Build Docker Model
         run: |
           cd MLProject
-          RUN_ID="${{ steps.get_run_id.outputs.run_id }}"
-          mlflow models build-docker -m "runs:/${RUN_ID}/model" -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
+          mlflow models build-docker -m model -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
 
       - name: Tag Docker Image
         run: |

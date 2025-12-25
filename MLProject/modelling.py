@@ -35,4 +35,5 @@ r2 = r2_score(y_test, y_pred)
 print("MSE:", mse)
 print("R2:", r2)
 
-mlflow.sklearn.log_model(model, artifact_path="model")
+os.makedirs("model", exist_ok=True)
+mlflow.sklearn.save_model(model, path="model")
