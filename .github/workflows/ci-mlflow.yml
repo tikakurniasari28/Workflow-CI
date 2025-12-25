@@ -24,7 +24,6 @@ jobs:
 
       - name: Run MLflow Project
         run: |
-          cd MLProject
           python MLProject/modelling.py
 
       - name: Upload MLflow runs as artifact
