@@ -16,10 +16,10 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Set up Python 3.12.7
+      - name: Set up Python
         uses: actions/setup-python@v4
         with:
-          python-version: "3.12.7"
+          python-version: "3.12"
 
       - name: Check Env
         run: |
@@ -39,22 +39,20 @@ jobs:
             -P max_depth=10 \
             -P dataset=day_wise_processed.csv
 
-
       - name: Check outputs
         run: |
-          ls -la
-          ls -la MLProject || true
-          ls -la MLProject/mlruns || true
-          ls -la MLProject/model || true
-          find MLProject/model -maxdepth 2 -name "MLmodel" || true
+          ls -la MLproject
+          ls -la MLproject/mlruns || true
+          ls -la MLproject/model || true
+          find MLproject/model -name "MLmodel" || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: training-artifacts
           path: |
-            MLProject/mlruns/
-            MLProject/model/
+            MLproject/mlruns/
+            MLproject/model/
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -64,17 +62,14 @@ jobs:
 
       - name: Build Docker Model
         run: |
-          cd MLProject
-          mlflow models build-docker -m model -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
-
-      - name: Tag Docker Image
-        run: |
-          docker tag ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ github.sha }}
+          cd MLproject
+          mlflow models build-docker \
+            -m model \
+            -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
 
       - name: Push Docker Image
         run: |
           docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:${{ github.sha }}
 
       - name: Complete job
         run: echo "Complete"
