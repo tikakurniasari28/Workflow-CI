@@ -33,7 +33,7 @@ jobs:
 
       - name: Run MLflow Project
         run: |
-          cd MLproject
+          cd MLProject
           mlflow run . \
             -P n_estimators=100 \
             -P max_depth=10 \
@@ -41,18 +41,18 @@ jobs:
 
       - name: Check outputs
         run: |
-          ls -la MLproject
-          ls -la MLproject/mlruns || true
-          ls -la MLproject/model || true
-          find MLproject/model -name "MLmodel" || true
+          ls -la MLProject
+          ls -la MLProject/mlruns || true
+          ls -la MLProject/model || true
+          find MLProject/model -name "MLmodel" || true
 
       - name: Upload artifact
         uses: actions/upload-artifact@v4
         with:
           name: training-artifacts
           path: |
-            MLproject/mlruns/
-            MLproject/model/
+            MLProject/mlruns/
+            MLProject/model/
 
       - name: Log in to Docker Hub
         uses: docker/login-action@v2
@@ -62,7 +62,7 @@ jobs:
 
       - name: Build Docker Model
         run: |
-          cd MLproject
+          cd MLProject
           mlflow models build-docker \
             -m model \
             -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
