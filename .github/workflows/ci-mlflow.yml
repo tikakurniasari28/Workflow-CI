@@ -8,6 +8,9 @@ on:
 jobs:
   retrain:
     runs-on: ubuntu-latest
+    defaults:
+      run:
+        shell: bash -l {0}
 
     steps:
       - name: Set up job
@@ -30,6 +33,13 @@ jobs:
         run: |
           pip install --upgrade pip
           pip install mlflow pandas scikit-learn joblib
+      
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: true
+          python-version: 3.12
+          activate-environment: base
 
       - name: Run MLflow Project
         run: |
