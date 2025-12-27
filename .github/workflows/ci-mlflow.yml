@@ -31,10 +31,14 @@ jobs:
           pip install --upgrade pip
           pip install mlflow pandas scikit-learn joblib
 
-      - name: Run training
+      - name: Run MLflow Project
         run: |
-          cd MLProject
-          python modelling.py
+          cd MLproject
+          mlflow run . \
+            -P n_estimators=100 \
+            -P max_depth=10 \
+            -P dataset=day_wise_processed.csv
+
 
       - name: Check outputs
         run: |
