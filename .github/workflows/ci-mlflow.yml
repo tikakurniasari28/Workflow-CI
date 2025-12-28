@@ -16,12 +16,12 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
-      - name: Set up Miniconda (Python 3.11.7)
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-update-conda: false
-          python-version: "3.11.7"
-          activate-environment: base
+      - name: Create env from conda.yaml
+        shell: bash -l {0}
+        run: |
+          conda env create -f MLProject/conda.yaml -n mlflow-env
+          conda activate mlflow-env
+          conda info
 
       - name: Install MLflow
         shell: bash -l {0}
