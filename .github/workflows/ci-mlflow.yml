@@ -82,8 +82,19 @@ jobs:
 
       - name: Patch Dockerfile
         run: |
-          sed -i 's/openjdk-8-jdk/openjdk-17-jdk-headless/g' MLProject/docker_build/Dockerfile
-          cat MLProject/docker_build/Dockerfile | head -n 60
+          DOCKERFILE="MLProject/docker_build/Dockerfile"
+          sed -i 's/openjdk-8-jdk/openjdk-17-jdk-headless/g' "$DOCKERFILE"
+
+          awk '
+          {print}
+          /apt-get install -y/ && !done {
+            print "    python3 python3-pip python3-venv python-is-python3 \\"
+            done=1
+          }' "$DOCKERFILE" > Dockerfile.tmp && mv Dockerfile.tmp "$DOCKERFILE"
+
+          sed -i 's/RUN python /RUN python3 /g' "$DOCKERFILE"
+          sed -i 's/python \/tmp\/get-pip.py/python3 \/tmp\/get-pip.py/g' "$DOCKERFILE"
+          head -n 120 "$DOCKERFILE"
 
       - name: Build Docker Image
         run: |
