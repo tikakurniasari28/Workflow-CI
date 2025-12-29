@@ -72,7 +72,23 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Hard reset Docker environment (FIX http+docker)
+        shell: bash
+        run: |
+          echo "Before fix:"
+          env | grep DOCKER || true
 
+          unset DOCKER_HOST
+          unset DOCKER_TLS_VERIFY
+          unset DOCKER_CERT_PATH
+
+          export DOCKER_HOST=unix:///var/run/docker.sock
+
+          echo "After fix:"
+          env | grep DOCKER || true
+
+          docker version
+          
       - name: Fix Docker Host for MLflow
         shell: bash
         run: |
