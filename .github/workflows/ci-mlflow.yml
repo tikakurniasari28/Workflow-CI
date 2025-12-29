@@ -42,11 +42,18 @@ jobs:
     - name: Generate Dockerfile from MLflow Model
       shell: bash -l {0}
       run: |
+        RUN_ID=$(mlflow runs list --experiment-id 0 --max-results 1 | tail -n 1 | awk '{print $1}')
+
+        echo "RUN_ID=$RUN_ID"
+
         mkdir -p docker
+
         mlflow models generate-dockerfile \
-          -m "runs:/${RUN_ID}/model" \
+          -m "runs:/$RUN_ID/model" \
           -o docker
+
         ls docker
+
 
 
     - name: Login to Docker Hub
