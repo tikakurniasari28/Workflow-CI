@@ -1,4 +1,4 @@
-name: MLflow CI
+name: MLflow CI Advanced
 
 on:
   push:
@@ -16,24 +16,26 @@ jobs:
       - name: Checkout repo
         uses: actions/checkout@v3
 
+      - name: Set up Miniconda
+        uses: conda-incubator/setup-miniconda@v3
+        with:
+          auto-update-conda: false
+          miniconda-version: "latest"
+          use-mamba: true
+
       - name: Create env from conda.yaml
         shell: bash -l {0}
         run: |
-          conda env create -f MLProject/conda.yaml -n mlflow-env
-          conda activate mlflow-env
-          conda info
-
-      - name: Install MLflow
-        shell: bash -l {0}
-        run: |
-          pip install --upgrade pip
-          pip install mlflow==2.9.2
+          mamba env create -f MLProject/conda.yaml -n mlflow-env
+          conda run -n mlflow-env python --version
+          conda run -n mlflow-env mlflow --version
+          conda run -n mlflow-env which mlflow
 
       - name: Run MLflow Project
         shell: bash -l {0}
         run: |
           cd MLProject
-          mlflow run . \
+          conda run -n mlflow-env mlflow run . \
             -P n_estimators=100 \
             -P max_depth=10 \
             -P dataset=day_wise_processed.csv
@@ -68,7 +70,7 @@ jobs:
         shell: bash -l {0}
         run: |
           cd MLProject
-          mlflow models build-docker \
+          conda run -n mlflow-env mlflow models build-docker \
             -m model \
             -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
 
