@@ -1,8 +1,8 @@
-name: MLflow CI Advanced
+name: MLflow CI Advanced FIX
 
 on:
   push:
-    branches: ["main"]
+    branches: [ main ]
   workflow_dispatch:
 
 jobs:
@@ -10,108 +10,50 @@ jobs:
     runs-on: ubuntu-latest
 
     steps:
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Start job
-        run: echo "Start MLflow CI Advanced"
+    - name: Set up Miniconda
+      uses: conda-incubator/setup-miniconda@v3
+      with:
+        auto-activate-base: false
+        python-version: "3.11"
+        activate-environment: mlflow-env
 
-      - name: Checkout repository
-        uses: actions/checkout@v3
+    - name: Install dependencies
+      shell: bash -l {0}
+      run: |
+        pip install --upgrade pip
+        pip install mlflow scikit-learn pandas docker
 
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-update-conda: false
-          miniconda-version: "latest"
-          activate-environment: mlflow-env
-          environment-file: MLProject/conda.yaml
-          auto-activate-base: false
+    - name: Run MLflow Project (Retraining)
+      shell: bash -l {0}
+      run: |
+        mlflow run . --env-manager=local
 
-      - name: Verify environment
-        shell: bash -l {0}
-        run: |
-          python --version
-          mlflow --version
-          which mlflow
+    - name: Disable Docker Buildx
+      run: |
+        docker buildx uninstall || true
+        docker context use default
+        docker version
 
+    - name: Docker Login
+      run: |
+        echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login \
+          -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
 
-      - name: Run MLflow Project (Retraining)
-        shell: bash -l {0}
-        run: |
-          cd MLProject
-          mlflow run . \
-            --experiment-name CI-Retraining-Experiment \
-            -P n_estimators=100 \
-            -P max_depth=10 \
-            -P dataset=day_wise_processed.csv
+    - name: Build Docker Image with MLflow
+      shell: bash -l {0}
+      run: |
+        export DOCKER_BUILDKIT=0
+        export DOCKER_HOST=unix:///var/run/docker.sock
 
-      - name: Verify MLflow outputs
-        shell: bash -l {0}
-        run: |
-          ls -la MLProject
-          ls -la MLProject/mlruns || true
-          ls -la MLProject/model || true
-          find MLProject/model -name "MLmodel" || true
+        RUN_ID=$(ls mlruns/*/*/artifacts/model | head -n 1 | awk -F'/' '{print $2}')
 
+        mlflow models build-docker \
+          -m "runs:/$RUN_ID/model" \
+          -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model
 
-      - name: Upload MLflow runs artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: mlruns
-          path: MLProject/mlruns/
-
-      - name: Upload Model Artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: model
-          path: MLProject/model/
-
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Hard reset Docker environment (FIX http+docker)
-        shell: bash
-        run: |
-          echo "Before fix:"
-          env | grep DOCKER || true
-
-          unset DOCKER_HOST
-          unset DOCKER_TLS_VERIFY
-          unset DOCKER_CERT_PATH
-
-          export DOCKER_HOST=unix:///var/run/docker.sock
-
-          echo "After fix:"
-          env | grep DOCKER || true
-
-          docker version
-          
-      - name: Fix Docker Host for MLflow
-        shell: bash
-        run: |
-          echo "Fixing Docker host for MLflow..."
-          export DOCKER_HOST=unix:///var/run/docker.sock
-          docker version
-          docker info
-
-
-      - name: Build Docker Image with MLflow
-        shell: bash -l {0}
-        run: |
-          export DOCKER_HOST=unix:///var/run/docker.sock
-          cd MLProject
-          mlflow models build-docker \
-            -m model \
-            -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model
-
-
-      - name: Push Docker Image to Docker Hub
-        run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
-
-
-      - name: Complete job
-        run: echo "MLflow CI Advanced Completed Successfully"
+    - name: Push Docker Image
+      run: |
+        docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model
