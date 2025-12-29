@@ -21,12 +21,11 @@ jobs:
         with:
           auto-update-conda: false
           miniconda-version: "latest"
-          use-mamba: true
 
       - name: Create env from conda.yaml
         shell: bash -l {0}
         run: |
-          mamba env create -f MLProject/conda.yaml -n mlflow-env
+          conda env create -f MLProject/conda.yaml -n mlflow-env
           conda run -n mlflow-env python --version
           conda run -n mlflow-env mlflow --version
           conda run -n mlflow-env which mlflow
