@@ -1,12 +1,13 @@
+import os
+import sys
+import shutil
 import pandas as pd
+from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 import mlflow
 import mlflow.sklearn
-from pathlib import Path
-import sys
-import shutil
 
 BASE_DIR = Path(__file__).resolve().parent
 
@@ -14,12 +15,17 @@ def main():
     mlflow.set_tracking_uri("file:./mlruns")
     mlflow.set_experiment("CI-Retraining-Experiment")
 
+    run_id = os.environ.get("MLFLOW_RUN_ID")
+    if run_id:
+        mlflow.start_run(run_id=run_id)
+    else:
+        mlflow.start_run()
+
     dataset = "day_wise_processed.csv"
     if len(sys.argv) >= 4:
         dataset = sys.argv[3]
 
     data_path = BASE_DIR / dataset
-
     df = pd.read_csv(data_path)
 
     y = df["Confirmed"]
@@ -47,6 +53,8 @@ def main():
         artifact_uri=mlflow.get_artifact_uri("model"),
         dst_path=str(BASE_DIR / "model")
     )
+
+    mlflow.end_run()
 
     print("Training selesai")
     print("MSE:", mse)
