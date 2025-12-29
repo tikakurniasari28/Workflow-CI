@@ -42,23 +42,20 @@ def main():
         raise ValueError("MLFLOW_RUN_ID tidak ditemukan. Pastikan script dijalankan via mlflow run .")
 
     client = MlflowClient()
-
     client.log_metric(run_id, "mse", mse)
     client.log_metric(run_id, "r2", r2)
 
     mlflow.sklearn.log_model(model, artifact_path="model")
 
-    shutil.rmtree(BASE_DIR / "model", ignore_errors=True)
-    mlflow.artifacts.download_artifacts(
-        artifact_uri=mlflow.get_artifact_uri("model"),
-        dst_path=str(BASE_DIR / "model")
-    )
+    local_model_dir = BASE_DIR / "model"
+    shutil.rmtree(local_model_dir, ignore_errors=True)
+    mlflow.sklearn.save_model(model, path=str(local_model_dir))
 
     print("Training selesai")
     print("MSE:", mse)
     print("R2:", r2)
     print("Run ID:", run_id)
-    print("Model exported to:", BASE_DIR / "model")
+    print("Local model saved to:", local_model_dir)
 
 if __name__ == "__main__":
     main()
