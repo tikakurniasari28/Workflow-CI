@@ -80,6 +80,11 @@ jobs:
           mkdir docker_build
           mlflow models generate-dockerfile -m model -d docker_build
 
+      - name: Patch Dockerfile
+        run: |
+          sed -i 's/openjdk-8-jdk/openjdk-17-jdk-headless/g' MLProject/docker_build/Dockerfile
+          cat MLProject/docker_build/Dockerfile | head -n 60
+
       - name: Build Docker Image
         run: |
           cd MLProject/docker_build
