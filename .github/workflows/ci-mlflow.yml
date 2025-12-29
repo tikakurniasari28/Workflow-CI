@@ -72,6 +72,20 @@ jobs:
           docker version
           docker info
 
+      - name: Prepare Docker
+        run: |
+          unset DOCKER_HOST
+          docker version
+          docker info
+
+      - name: Build Docker Model
+        shell: bash -l {0}
+        run: |
+          unset DOCKER_HOST
+          conda activate mlflow-env
+          cd MLProject
+          mlflow models build-docker -m model -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
+
       - name: Build Docker Model
         shell: bash -l {0}
         run: |
