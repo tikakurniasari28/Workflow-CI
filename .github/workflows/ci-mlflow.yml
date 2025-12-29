@@ -65,9 +65,17 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
+      - name: Fix Docker Host
+        run: |
+          echo "DOCKER_HOST=$DOCKER_HOST"
+          unset DOCKER_HOST
+          docker version
+          docker info
+
       - name: Build Docker Model
         shell: bash -l {0}
         run: |
+          unset DOCKER_HOST
           cd MLProject
           conda run -n mlflow-env mlflow models build-docker \
             -m model \
