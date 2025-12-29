@@ -65,39 +65,25 @@ jobs:
           username: ${{ secrets.DOCKERHUB_USERNAME }}
           password: ${{ secrets.DOCKERHUB_TOKEN }}
 
-      - name: Fix Docker Host
-        run: |
-          echo "DOCKER_HOST=$DOCKER_HOST"
-          unset DOCKER_HOST
-          docker version
-          docker info
-
       - name: Prepare Docker
         run: |
           unset DOCKER_HOST
           docker version
           docker info
 
-      - name: Build Docker Model
+      - name: Generate Dockerfile with MLflow
         shell: bash -l {0}
         run: |
-          export DOCKER_HOST=unix:///var/run/docker.sock
-          export DOCKER_TLS_VERIFY=
-          export DOCKER_CERT_PATH=
           conda activate mlflow-env
           cd MLProject
-          docker version
-          docker info
-          mlflow models build-docker -m model -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
+          rm -rf docker_build
+          mkdir docker_build
+          mlflow models generate-dockerfile -m model -d docker_build
 
-      - name: Build Docker Model
-        shell: bash -l {0}
+      - name: Build Docker Image
         run: |
-          unset DOCKER_HOST
-          cd MLProject
-          conda run -n mlflow-env mlflow models build-docker \
-            -m model \
-            -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
+          cd MLProject/docker_build
+          docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest .
 
       - name: Tag Docker Image
         run: |
