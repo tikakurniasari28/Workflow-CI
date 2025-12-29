@@ -1,4 +1,4 @@
-name: MLflow CI Advanced (Generate Dockerfile)
+name: MLflow CI Advanced
 
 on:
   push:
@@ -26,24 +26,26 @@ jobs:
         pip install --upgrade pip
         pip install mlflow scikit-learn pandas
 
-
     - name: Run MLflow Project
       shell: bash -l {0}
       run: |
         mlflow run . --env-manager=local
 
 
+    - name: Get latest MLflow Run ID
+      shell: bash -l {0}
+      run: |
+        RUN_ID=$(ls mlruns/*/*/meta.yaml | head -n 1 | awk -F'/' '{print $2}')
+        echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
+
+
     - name: Generate Dockerfile from MLflow Model
       shell: bash -l {0}
       run: |
-        RUN_ID=$(ls mlruns/*/*/artifacts/model | head -n 1 | awk -F'/' '{print $2}')
-
         mkdir -p docker
-
         mlflow models generate-dockerfile \
-          -m "runs:/$RUN_ID/model" \
+          -m "runs:/${RUN_ID}/model" \
           -o docker
-
         ls docker
 
 
@@ -51,6 +53,7 @@ jobs:
       run: |
         echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login \
           -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
+
 
     - name: Build Docker Image
       run: |
