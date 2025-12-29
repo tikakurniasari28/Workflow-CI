@@ -81,9 +81,13 @@ jobs:
       - name: Build Docker Model
         shell: bash -l {0}
         run: |
-          unset DOCKER_HOST
+          export DOCKER_HOST=unix:///var/run/docker.sock
+          export DOCKER_TLS_VERIFY=
+          export DOCKER_CERT_PATH=
           conda activate mlflow-env
           cd MLProject
+          docker version
+          docker info
           mlflow models build-docker -m model -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
 
       - name: Build Docker Model
