@@ -83,18 +83,20 @@ jobs:
       - name: Patch Dockerfile
         run: |
           DOCKERFILE="MLProject/docker_build/Dockerfile"
+
           sed -i 's/openjdk-8-jdk/openjdk-17-jdk-headless/g' "$DOCKERFILE"
 
-          awk '
-          {print}
-          /apt-get install -y/ && !done {
-            print "    python3 python3-pip python3-venv python-is-python3 \\"
-            done=1
-          }' "$DOCKERFILE" > Dockerfile.tmp && mv Dockerfile.tmp "$DOCKERFILE"
+          sed -i '/get-pip.py/d' "$DOCKERFILE"
+          sed -i '/pip install virtualenv/d' "$DOCKERFILE"
 
           sed -i 's/RUN python /RUN python3 /g' "$DOCKERFILE"
-          sed -i 's/python \/tmp\/get-pip.py/python3 \/tmp\/get-pip.py/g' "$DOCKERFILE"
-          head -n 120 "$DOCKERFILE"
+
+          sed -i 's/apt-get install -y --no-install-recommends/apt-get install -y --no-install-recommends python3 python3-pip python3-venv python-is-python3/g' "$DOCKERFILE"
+
+          sed -i '/^[[:space:]]*python3 python3-pip/d' "$DOCKERFILE"
+
+          head -n 80 "$DOCKERFILE"
+
 
       - name: Build Docker Image
         run: |
