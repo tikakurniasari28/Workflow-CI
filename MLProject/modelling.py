@@ -8,18 +8,12 @@ from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
 import mlflow
 import mlflow.sklearn
+from mlflow.tracking import MlflowClient
 
 BASE_DIR = Path(__file__).resolve().parent
 
 def main():
     mlflow.set_tracking_uri("file:./mlruns")
-    mlflow.set_experiment("CI-Retraining-Experiment")
-
-    run_id = os.environ.get("MLFLOW_RUN_ID")
-    if run_id:
-        mlflow.start_run(run_id=run_id)
-    else:
-        mlflow.start_run()
 
     dataset = "day_wise_processed.csv"
     if len(sys.argv) >= 4:
@@ -43,8 +37,14 @@ def main():
     mse = mean_squared_error(y_test, y_pred)
     r2 = r2_score(y_test, y_pred)
 
-    mlflow.log_metric("mse", mse)
-    mlflow.log_metric("r2", r2)
+    run_id = os.environ.get("MLFLOW_RUN_ID")
+    if run_id is None:
+        raise ValueError("MLFLOW_RUN_ID tidak ditemukan. Pastikan script dijalankan via mlflow run .")
+
+    client = MlflowClient()
+
+    client.log_metric(run_id, "mse", mse)
+    client.log_metric(run_id, "r2", r2)
 
     mlflow.sklearn.log_model(model, artifact_path="model")
 
@@ -54,11 +54,10 @@ def main():
         dst_path=str(BASE_DIR / "model")
     )
 
-    mlflow.end_run()
-
     print("Training selesai")
     print("MSE:", mse)
     print("R2:", r2)
+    print("Run ID:", run_id)
     print("Model exported to:", BASE_DIR / "model")
 
 if __name__ == "__main__":

@@ -34,7 +34,7 @@ jobs:
         shell: bash -l {0}
         run: |
           cd MLProject
-          conda run -n mlflow-env mlflow run . \
+          conda run -n mlflow-env mlflow run . --experiment-name CI-Retraining-Experiment \
             -P n_estimators=100 \
             -P max_depth=10 \
             -P dataset=day_wise_processed.csv
