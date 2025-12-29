@@ -17,3 +17,7 @@ dependencies:
   - scikit-learn==1.8.0
   - scipy==1.11.4
 name: mlflow-env
+with:
+  auto-update-conda: false
+  miniconda-version: "latest"
+  channels: defaults
