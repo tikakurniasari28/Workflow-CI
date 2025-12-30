@@ -9,7 +9,7 @@ import mlflow.sklearn
 BASE_DIR = Path(__file__).resolve().parent
 
 def main():
-   
+    
     mlflow.set_tracking_uri("file:./mlruns")
     mlflow.set_experiment("default")
 
@@ -25,28 +25,24 @@ def main():
     )
 
     model = LinearRegression()
+    model.fit(X_train, y_train)
 
-    
-    with mlflow.start_run():
+    y_pred = model.predict(X_test)
 
-        model.fit(X_train, y_train)
-        y_pred = model.predict(X_test)
+    mse = mean_squared_error(y_test, y_pred)
+    r2 = r2_score(y_test, y_pred)
 
-        mse = mean_squared_error(y_test, y_pred)
-        r2 = r2_score(y_test, y_pred)
+    mlflow.log_metric("mse", mse)
+    mlflow.log_metric("r2", r2)
 
-       
-        mlflow.log_metric("mse", mse)
-        mlflow.log_metric("r2", r2)
+    mlflow.sklearn.log_model(
+        model,
+        artifact_path="model"
+    )
 
-        mlflow.sklearn.log_model(
-            model,
-            artifact_path="model"
-        )
-
-        print("Training selesai")
-        print("MSE:", mse)
-        print("R2:", r2)
+    print("Training selesai")
+    print("MSE:", mse)
+    print("R2:", r2)
 
 if __name__ == "__main__":
     main()
