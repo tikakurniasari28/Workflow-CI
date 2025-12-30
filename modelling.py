@@ -1,46 +1,44 @@
-import os
 import argparse
+import pandas as pd
 import mlflow
 import mlflow.sklearn
-import pandas as pd
+from sklearn.ensemble import RandomForestRegressor
 from sklearn.model_selection import train_test_split
-from sklearn.linear_model import LinearRegression
-from sklearn.metrics import mean_squared_error, r2_score
-from pathlib import Path
+from sklearn.metrics import mean_squared_error
 
+def main():
+    parser = argparse.ArgumentParser()
+    parser.add_argument("n_estimators", type=int)
+    parser.add_argument("max_depth", type=int)
+    parser.add_argument("dataset", type=str)
+    args = parser.parse_args()
 
-parser = argparse.ArgumentParser()
-parser.add_argument("n_estimators", type=int)
-parser.add_argument("max_depth", type=int)
-parser.add_argument("dataset", type=str)
-args = parser.parse_args()
+    df = pd.read_csv(args.dataset)
+    y = df["Confirmed"]
+    X = df.drop(columns=["Confirmed"])
 
-if os.getenv("MLFLOW_EXPERIMENT_NAME") is None and os.getenv("MLFLOW_RUN_ID") is None:
-    mlflow.set_experiment("CI-Retraining-Experiment")
+    X_train, X_test, y_train, y_test = train_test_split(
+        X, y, test_size=0.2, random_state=42
+    )
 
-mlflow.sklearn.autolog()
+    model = RandomForestRegressor(
+        n_estimators=args.n_estimators,
+        max_depth=args.max_depth,
+        random_state=42
+    )
 
-BASE_DIR = Path(__file__).resolve().parent
-data_path = BASE_DIR / args.dataset
-df = pd.read_csv(data_path)
+    with mlflow.start_run():
+        model.fit(X_train, y_train)
+        preds = model.predict(X_test)
+        mse = mean_squared_error(y_test, preds)
 
-X = df.iloc[:, :-1]
-y = df.iloc[:, -1]
+        mlflow.log_param("n_estimators", args.n_estimators)
+        mlflow.log_param("max_depth", args.max_depth)
+        mlflow.log_metric("mse", mse)
 
-X_train, X_test, y_train, y_test = train_test_split(
-    X, y, test_size=0.2, random_state=42
-)
+        mlflow.sklearn.log_model(model, "model")
 
-model = LinearRegression()
-model.fit(X_train, y_train)
+        print("Training selesai, MSE:", mse)
 
-y_pred = model.predict(X_test)
-mse = mean_squared_error(y_test, y_pred)
-r2 = r2_score(y_test, y_pred)
-
-print("MSE:", mse)
-print("R2:", r2)
-
-
-os.makedirs("model", exist_ok=True)
-mlflow.sklearn.save_model(model, path="model")
+if __name__ == "__main__":
+    main()
