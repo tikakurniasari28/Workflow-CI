@@ -9,12 +9,11 @@ import mlflow.sklearn
 BASE_DIR = Path(__file__).resolve().parent
 
 def main():
-    
-    mlflow.set_tracking_uri("file:./mlruns")
+
+    mlflow.set_tracking_uri(f"file://{BASE_DIR}/mlruns")
     mlflow.set_experiment("default")
 
-    dataset = "day_wise_processed.csv"
-    data_path = BASE_DIR / dataset
+    data_path = BASE_DIR / "day_wise_processed.csv"
     df = pd.read_csv(data_path)
 
     y = df["Confirmed"]
