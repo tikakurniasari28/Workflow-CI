@@ -1,37 +1,46 @@
+import os
+import argparse
+import mlflow
+import mlflow.sklearn
 import pandas as pd
-from pathlib import Path
 from sklearn.model_selection import train_test_split
 from sklearn.linear_model import LinearRegression
 from sklearn.metrics import mean_squared_error, r2_score
-import mlflow
-import mlflow.sklearn
+from pathlib import Path
+
+
+parser = argparse.ArgumentParser()
+parser.add_argument("n_estimators", type=int)
+parser.add_argument("max_depth", type=int)
+parser.add_argument("dataset", type=str)
+args = parser.parse_args()
+
+if os.getenv("MLFLOW_EXPERIMENT_NAME") is None and os.getenv("MLFLOW_RUN_ID") is None:
+    mlflow.set_experiment("CI-Retraining-Experiment")
+
+mlflow.sklearn.autolog()
 
 BASE_DIR = Path(__file__).resolve().parent
+data_path = BASE_DIR / args.dataset
+df = pd.read_csv(data_path)
 
-def main():
-    mlflow.set_tracking_uri(f"file://{BASE_DIR}/mlruns")
-    mlflow.set_experiment("ci-experiment")
+X = df.iloc[:, :-1]
+y = df.iloc[:, -1]
 
-    df = pd.read_csv(BASE_DIR / "day_wise_processed.csv")
+X_train, X_test, y_train, y_test = train_test_split(
+    X, y, test_size=0.2, random_state=42
+)
 
-    X = df.drop(columns=["Confirmed"])
-    y = df["Confirmed"]
+model = LinearRegression()
+model.fit(X_train, y_train)
 
-    X_train, X_test, y_train, y_test = train_test_split(
-        X, y, test_size=0.2, random_state=42
-    )
+y_pred = model.predict(X_test)
+mse = mean_squared_error(y_test, y_pred)
+r2 = r2_score(y_test, y_pred)
 
-    model = LinearRegression()
-    model.fit(X_train, y_train)
+print("MSE:", mse)
+print("R2:", r2)
 
-    preds = model.predict(X_test)
 
-    mlflow.log_metric("mse", mean_squared_error(y_test, preds))
-    mlflow.log_metric("r2", r2_score(y_test, preds))
-
-    mlflow.sklearn.log_model(model, artifact_path="model")
-
-    print("Training selesai via CI")
-
-if __name__ == "__main__":
-    main()
+os.makedirs("model", exist_ok=True)
+mlflow.sklearn.save_model(model, path="model")
