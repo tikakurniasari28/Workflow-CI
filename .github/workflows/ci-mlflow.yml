@@ -8,77 +8,36 @@ on:
 jobs:
   retrain:
     runs-on: ubuntu-latest
-    defaults:
-      run:
-        shell: bash -l {0}
 
     steps:
-      - name: Set up job
-        run: echo "Start job"
+    - name: Checkout repository
+      uses: actions/checkout@v4
 
-      - name: Checkout repo
-        uses: actions/checkout@v3
+    - name: Set up Python
+      uses: actions/setup-python@v5
+      with:
+        python-version: "3.11"
 
-      - name: Set up Python
-        uses: actions/setup-python@v4
-        with:
-          python-version: "3.12"
+    - name: Check environment
+      run: |
+        python --version
+        pip --version
 
-      - name: Check Env
-        run: |
-          python --version
-          pip --version
+    - name: Install dependencies
+      run: |
+        pip install --upgrade pip
+        pip install mlflow scikit-learn pandas
 
-      - name: Install dependencies
-        run: |
-          pip install --upgrade pip
-          pip install mlflow
-      
-      - name: Set up Miniconda
-        uses: conda-incubator/setup-miniconda@v3
-        with:
-          auto-update-conda: false
-          python-version: "3.10"
+    - name: Run MLflow Project
+      run: |
+        mlflow run . --env-manager=local
 
-      - name: Run MLflow Project
-        run: |
-          cd MLProject
-          mlflow run . \
-            -P n_estimators=100 \
-            -P max_depth=10 \
-            -P dataset=day_wise_processed.csv
+    - name: Check MLflow outputs
+      run: |
+        ls -la mlruns || true
 
-      - name: Check outputs
-        run: |
-          ls -la MLProject
-          ls -la MLProject/mlruns || true
-          ls -la MLProject/model || true
-          find MLProject/model -name "MLmodel" || true
-
-      - name: Upload artifact
-        uses: actions/upload-artifact@v4
-        with:
-          name: training-artifacts
-          path: |
-            MLProject/mlruns/
-            MLProject/model/
-
-      - name: Log in to Docker Hub
-        uses: docker/login-action@v2
-        with:
-          username: ${{ secrets.DOCKERHUB_USERNAME }}
-          password: ${{ secrets.DOCKERHUB_TOKEN }}
-
-      - name: Build Docker Model
-        run: |
-          cd MLProject
-          mlflow models build-docker \
-            -m model \
-            -n ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
-
-      - name: Push Docker Image
-        run: |
-          docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
-
-      - name: Complete job
-        run: echo "Complete"
+    - name: Upload MLflow artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mlflow-artifacts
+        path: mlruns/
