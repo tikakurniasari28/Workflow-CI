@@ -1,4 +1,4 @@
-name: MLflow CI Advanced
+name: MLflow CI Training
 
 on:
   push:
@@ -6,67 +6,29 @@ on:
   workflow_dispatch:
 
 jobs:
-  retrain-and-dockerize:
+  train-ml-model:
     runs-on: ubuntu-latest
 
     steps:
     - name: Checkout repository
       uses: actions/checkout@v4
 
-    - name: Set up Miniconda
-      uses: conda-incubator/setup-miniconda@v3
+    - name: Set up Python
+      uses: actions/setup-python@v5
       with:
-        auto-activate-base: false
-        activate-environment: mlflow-env
         python-version: "3.11"
 
     - name: Install dependencies
-      shell: bash -l {0}
       run: |
         pip install --upgrade pip
         pip install mlflow scikit-learn pandas
 
     - name: Run MLflow Project
-      shell: bash -l {0}
       run: |
         mlflow run . --env-manager=local
 
-
-    - name: Get latest MLflow Run ID
-      shell: bash -l {0}
-      run: |
-        RUN_ID=$(ls mlruns/*/*/meta.yaml | head -n 1 | awk -F'/' '{print $2}')
-        echo "RUN_ID=$RUN_ID" >> $GITHUB_ENV
-
-
-    - name: Generate Dockerfile from MLflow Model
-      shell: bash -l {0}
-      run: |
-        RUN_ID=$(mlflow runs list --experiment-id 0 --max-results 1 | tail -n 1 | awk '{print $1}')
-
-        echo "RUN_ID=$RUN_ID"
-
-        mkdir -p docker
-
-        mlflow models generate-dockerfile \
-          -m "runs:/$RUN_ID/model" \
-          -o docker
-
-        ls docker
-
-
-
-    - name: Login to Docker Hub
-      run: |
-        echo "${{ secrets.DOCKERHUB_TOKEN }}" | docker login \
-          -u "${{ secrets.DOCKERHUB_USERNAME }}" --password-stdin
-
-
-    - name: Build Docker Image
-      run: |
-        docker build -t ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest docker
-
-
-    - name: Push Docker Image
-      run: |
-        docker push ${{ secrets.DOCKERHUB_USERNAME }}/mlflow-model:latest
+    - name: Upload MLflow Artifacts
+      uses: actions/upload-artifact@v4
+      with:
+        name: mlflow-artifacts
+        path: mlruns/
